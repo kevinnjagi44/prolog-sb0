@@ -16,7 +16,7 @@ transform_default = transforms.Compose([transforms.Resize((256, 256), Image.BICU
                                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 
-class oct_cheng_dataset(Dataset):
+class oct_cheng_frames_dataset(Dataset):
     def __init__(self, root, transform=transform_default, mode='train', source_num=4):
         self.root = root
         self.transform = transform
@@ -197,3 +197,53 @@ class boe_dataset_zhoukang_test(Dataset):
 
     def __len__(self):
         return len(self.image_list)
+
+
+class oct_cheng_dataset(Dataset):
+    def __init__(self, root, transforms_=transform_default):
+        self.transform = transforms.Compose(transforms_)
+
+        self.files = sorted(glob.glob(root + '/*.fds/*.png'))
+        self.gt = sorted(glob.glob(root + '/*.fds/gt_10/*.png'))
+
+    def __getitem__(self, index):
+
+        img = Image.open(self.files[index]).convert('L')
+        gt = Image.open(self.gt[index]).convert('L')
+
+        # if np.random.random() < 0.5:
+        #     img = Image.fromarray(np.array(img)[:, ::-1, :], 'RGB')
+        #     gt = Image.fromarray(np.array(gt)[:, ::-1, :], 'RGB')
+
+        img = self.transform(img)
+        gt = self.transform(gt)
+
+        return {'A': img, 'B': gt}
+
+    def __len__(self):
+        return len(self.files)
+
+
+class oct_edema_dataset(Dataset):
+    def __init__(self, root, transforms_=transform_default):
+        self.transform = transforms.Compose(transforms_)
+        self.path = root + '/ai_challenger_fl2018_trainingset/original_images/*/*.bmp'
+        self.files = sorted(glob.glob(root + '/ai_challenger_fl2018_trainingset/original_images/*/*.bmp'))
+        self.gt = sorted(glob.glob(root + '/ai_challenger_fl2018_trainingset/label_images/*/*.bmp'))
+
+    def __getitem__(self, index):
+
+        img = Image.open(self.files[index]).convert('L')
+        gt = Image.open(self.gt[index]).convert('L')
+
+        # if np.random.random() < 0.5:
+        #     img = Image.fromarray(np.array(img)[:, ::-1, :], 'RGB')
+        #     gt = Image.fromarray(np.array(gt)[:, ::-1, :], 'RGB')
+
+        img = self.transform(img)
+        gt = self.transform(gt)
+
+        return {'A': img, 'B': gt}
+
+    def __len__(self):
+        return len(self.files)

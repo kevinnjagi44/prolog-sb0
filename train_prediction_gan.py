@@ -4,7 +4,7 @@ import pdb
 import logging
 
 from models.Discriminator import *
-from datasets import oct_cheng_dataset, oct_boe_dataset, oct_boe_and_challen_dataset
+from datasets import *
 from utils import *
 
 import torch
