@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=2 python train_pix2pix.py
+CUDA_VISIBLE_DEVICES=3 python train_pix2pix.py

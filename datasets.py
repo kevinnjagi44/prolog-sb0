@@ -216,7 +216,9 @@ class oct_cheng_dataset(Dataset):
         #     gt = Image.fromarray(np.array(gt)[:, ::-1, :], 'RGB')
 
         img = self.transform(img)
-        gt = self.transform(gt)
+        image2tensor = transforms.Compose([transforms.Resize((256, 256), Image.BICUBIC),
+                                           transforms.ToTensor()])
+        gt = image2tensor(gt)
 
         return {'A': img, 'B': gt}
 
@@ -241,7 +243,9 @@ class oct_edema_dataset(Dataset):
         #     gt = Image.fromarray(np.array(gt)[:, ::-1, :], 'RGB')
 
         img = self.transform(img)
-        gt = self.transform(gt)
+        image2tensor = transforms.Compose([transforms.Resize((256, 256), Image.BICUBIC),
+                                           transforms.ToTensor()])
+        gt = image2tensor(gt)
 
         return {'A': img, 'B': gt}
 

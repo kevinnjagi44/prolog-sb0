@@ -25,20 +25,20 @@ from visualizer import Visualizer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', type=int, default=0, help='epoch to start training from')
-parser.add_argument('--n_epochs', type=int, default=100, help='number of epochs of training')
+parser.add_argument('--n_epochs', type=int, default=200, help='number of epochs of training')
 parser.add_argument('--dataset_name', type=str, default="OCT_cheng", help='name of the dataset')
 parser.add_argument('--val_dataset_name', type=str, default="OCT_challenge", help='name of the val dataset')
 parser.add_argument('--batch_size', type=int, default=20, help='size of the batches')
 parser.add_argument('--lr', type=float, default=0.0002, help='adam: learning rate')
 parser.add_argument('--b1', type=float, default=0.5, help='adam: decay of first order momentum of gradient')
 parser.add_argument('--b2', type=float, default=0.999, help='adam: decay of first order momentum of gradient')
-parser.add_argument('--decay_epoch', type=int, default=500, help='epoch from which to start lr decay')
+parser.add_argument('--decay_epoch', type=int, default=50, help='epoch from which to start lr decay')
 parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during batch generation')
 parser.add_argument('--img_height', type=int, default=256, help='size of image height')
 parser.add_argument('--img_width', type=int, default=256, help='size of image width')
 parser.add_argument('--channels', type=int, default=1, help='number of image channels')
-parser.add_argument('--sample_interval', type=int, default=500, help='interval between sampling of images from generators')
-parser.add_argument('--checkpoint_interval', type=int, default=-1, help='interval between model checkpoints')
+parser.add_argument('--sample_interval', type=int, default=50, help='interval between sampling of images from generators')
+parser.add_argument('--checkpoint_interval', type=int, default=5, help='interval between model checkpoints')
 parser.add_argument('--visdom_env', type=str, default='main', help='environment of visdom')
 opt = parser.parse_args()
 print(opt)
@@ -82,6 +82,9 @@ else:
 # Optimizers
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
+
+lr_scheduler_G = torch.optim.lr_scheduler.MultiStepLR(optimizer_G, milestones=[100, 150], gamma=0.1)
+lr_scheduler_D = torch.optim.lr_scheduler.MultiStepLR(optimizer_D, milestones=[100, 150], gamma=0.1)
 
 # Configure dataloaders
 transforms_ = [ transforms.Resize((opt.img_height, opt.img_width), Image.BICUBIC),
@@ -133,6 +136,7 @@ for epoch in range(opt.epoch, opt.n_epochs):
 
         # GAN loss
         fake_B = generator(real_A)
+
         pred_fake = discriminator(fake_B, real_A)
         loss_GAN = criterion_GAN(pred_fake, valid)
         # Pixel-wise loss
@@ -180,24 +184,36 @@ for epoch in range(opt.epoch, opt.n_epochs):
         prev_time = time.time()
 
         # Print log
-        sys.stdout.write("\r[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f, pixel: %f, adv: %f] ETA: %s" %
+        # sys.stdout.write("\r[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f, pixel: %f, adv: %f] ETA: %s" %
+        #                                                 (epoch, opt.n_epochs,
+        #                                                 i, len(dataloader),
+        #                                                 loss_D.item(), loss_G.item(),
+        #                                                 loss_pixel.item(), loss_GAN.item(),
+        #                                                 time_left))
+
+        print("\r[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f, pixel: %f, adv: %f] ETA: %s" %
                                                         (epoch, opt.n_epochs,
                                                         i, len(dataloader),
                                                         loss_D.item(), loss_G.item(),
                                                         loss_pixel.item(), loss_GAN.item(),
                                                         time_left))
-
         # If at sample interval save image
         if batches_done % opt.sample_interval == 0:
             sample_images(batches_done)
         if i % 10 == 0:
-            real_B = (real_B + 1) * 25 - 1
-            fake_B = (fake_B + 1) * 25 - 1
-            visualize_image = torch.cat([real_A[0].unsqueeze(0), fake_B[0].unsqueeze(0), real_B[0].unsqueeze(0)], 0) * 0.5 + 0.5
+            vis_real_A = real_A * 0.5 + 0.5
+            vis_real_B = real_B * 25
+            vis_fake_B = fake_B * 25
+            visualize_image = torch.cat([vis_real_A[0].unsqueeze(0), vis_fake_B[0].unsqueeze(0), vis_real_B[0].unsqueeze(0)], 0)
             # image_saver(os.path.join('results', result_dir_name, 'prediction'), visualize_image, counter.count)
-            vis.images(visualize_image, 'Training:inputs images-output-ground truth', nrow=3)
+            vis.images(vis_real_A[0], 'Training:inputs ')
+            vis.images(vis_fake_B[0], 'Training:output')
+            vis.images(vis_real_B[0], 'Training:ground truth')
 
     if opt.checkpoint_interval != -1 and epoch % opt.checkpoint_interval == 0:
         # Save model checkpoints
         torch.save(generator.state_dict(), 'saved_models/%s/generator_%d.pth' % (opt.dataset_name, epoch))
-torch.save(discriminator.state_dict(), 'saved_models/%s/discriminator_%d.pth' % (opt.dataset_name, epoch))
+        torch.save(discriminator.state_dict(), 'saved_models/%s/discriminator_%d.pth' % (opt.dataset_name, epoch))
+
+    lr_scheduler_G.step()
+    lr_scheduler_D.step()
