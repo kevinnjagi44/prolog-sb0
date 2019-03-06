@@ -23,9 +23,13 @@ def get_challen_information(path, mode='train'):
     return name, dir_num, dir_time
 
 
-def get_cheng_information(path):
-    name = os.path.split(path)[1].split('.')[0]
-    dir = os.path.split(os.path.split(path)[0])[1].split('.')[0]
+def get_cheng_information(path, mode='original'):
+    if mode == 'original':
+        name = os.path.split(path)[1].split('.')[0]
+        dir = os.path.split(os.path.split(path)[0])[1].split('.')[0]
+    else:
+        name = os.path.split(path)[1].split('.')[0]
+        dir = os.path.split(os.path.split(os.path.split(path)[0])[0])[1].split('.')[0]
 
     return name, dir
 # # #####  BOE  ##### #
@@ -62,10 +66,16 @@ def get_cheng_information(path):
 # ######  cheng   ##### #
 train_data_path = 'D:/Pycharm Projects/datasets/PreivateChengOCT'
 image_list = sorted(glob.glob(train_data_path + '/*.fds/*.png'))
-
+image_mask = sorted(glob.glob(train_data_path + '/*.fds/gt_10/*.png'))
 count = 0
 for image in image_list:
     count += 1
     print('{}/{}'.format(count, len(image_list)))
     name, dir = get_cheng_information(image)
-    shutil.copy(image, 'D:/Pycharm Projects/datasets/Source2' + '/{}-{}.jpg'.format(dir, name))
+    shutil.copy(image, 'D:/Pycharm Projects/datasets/cheng' + '/{}-{}.png'.format(dir, name))
+
+for image in image_mask:
+    count += 1
+    print('{}/{}'.format(count, len(image_list)))
+    name, dir = get_cheng_information(image, mode='mask')
+    shutil.copy(image, 'D:/Pycharm Projects/datasets/cheng_mask' + '/{}-{}.png'.format(dir, name))
