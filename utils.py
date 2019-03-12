@@ -99,10 +99,50 @@ def accuracy(output, target, topk=(1,)):
 
     _, pred = output.topk(maxk, 1, True, True)
     pred = pred.t()
-    correct = pred.eq(target.view(1, -1).expand_as(pred))
+    correct = pred.eq(target.view(1, -1).expand_as(pred).long())
 
     res = []
     for k in topk:
         correct_k = correct[:k].view(-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
+
+
+def accuracy_per_class(output, target, cls_list_name):
+    acc_per_cls = {}
+    acc_list = []
+    cls_list = []
+    if cls_list_name == 'boe':
+        cls_dict = {'normal': 0, 'amd': 1, 'dme': 2}
+    else:
+        cls_dict = {'normal': 0, 'dme': 1, 'drusen': 2}
+    _, pred = output.topk(1, 1, True, True)
+    pred = pred.t()
+    for name in cls_dict.items():
+        cls = name[1]
+        acc_per_cls[name[0]] = torch.sum((pred == target.long()) & (target == cls)).float() / torch.sum(target == cls).float()
+    for i in acc_per_cls.items():
+        acc_list.append(i[1])
+        cls_list.append(i[0])
+
+    return cls_list, acc_list
+
+
+def save_ckpt(version, state, is_best, epoch):
+    v_split_list = version.split('_')
+    v_major = v_split_list[0]
+    v_minor = v_split_list[1]
+
+    ckpt_dir = os.path.join('checkpoints/', version)
+    os.makedirs(ckpt_dir, exist_ok=True)
+    version_filename = '{}_ckpt.pth.tar'.format(version)
+    version_file_path = os.path.join(ckpt_dir, version_filename)
+    torch.save(state, version_file_path)
+    # if epoch % 10 == 0:
+    #     ckpt_file_path = os.path.join(ckpt_dir, '{}_ckpt@{}.pth.tar'.format(version, epoch))
+    #     torch.save(state, ckpt_file_path)
+    if is_best:
+        best_file_path = os.path.join(ckpt_dir, '{}_{}_best@{}.pth.tar'.format(v_major, v_minor, epoch))
+        # shutil.copyfile(version_file_path, best_file_path)  maintain the best model
+        torch.save(state, best_file_path)
+

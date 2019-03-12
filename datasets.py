@@ -7,13 +7,27 @@ import numpy as np
 
 import torch
 from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 from utils import *
 import pdb
 
-transform_default = transforms.Compose([transforms.Resize((256, 256), Image.BICUBIC),
+transform_default = transforms.Compose([transforms.Resize((224, 224), Image.BICUBIC),
                                        transforms.ToTensor(),
                                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+
+def get_dataloader(dataset, root, batch_size, transform=transform_default, mode='train'):
+    if dataset == 'boe':
+        dataloader = DataLoader(oct_boe_dataset(root, transform=transform, mode=mode),
+                                batch_size=batch_size, shuffle=True)
+    elif dataset == 'cell':
+        dataloader = DataLoader(oct_cell_dataset(root, transform=transform, mode=mode),
+                                batch_size=batch_size, shuffle=True)
+    else:
+        raise ValueError('dataset not exist')
+
+    return dataloader
 
 
 class oct_cheng_frames_dataset(Dataset):
@@ -113,7 +127,8 @@ class oct_boe_and_challen_dataset(Dataset):
         return len(self.fragment)
 
 
-class oct_boe_dataset(Dataset):
+class oct_boe_frames_dataset(Dataset):
+    # 每个volume采样连续的几张图像
     def __init__(self, root, transform=transform_default, mode='val', source_num=4):
         self.root = root
         self.transform = transform
@@ -251,3 +266,82 @@ class oct_edema_dataset(Dataset):
 
     def __len__(self):
         return len(self.files)
+
+
+class oct_boe_dataset(Dataset):
+    def __init__(self, root, transform=transform_default, mode='train'):
+        self.root = root
+        self.transform = transform
+        self.mode = mode
+        self.image_label = []
+        self.normal_volumes = sorted(glob.glob(self.root + '/NORMAL*'))
+        self.amd_volumes = sorted(glob.glob(self.root + '/AMD*'))
+        self.dme_volumes = sorted(glob.glob(self.root + '/DME*'))
+        self.volumes = {}
+        self.image_label = torch.Tensor([])
+        self.image_list = []
+        if mode == 'train':
+            for i in self.normal_volumes[:9]:
+                self.volumes[i] = 0
+            for i in self.amd_volumes[:9]:
+                self.volumes[i] = 1
+            # self.volumes = self.normal_volumes[:12] + self.amd_volumes[:12]
+        elif mode == 'val':
+            # self.volumes = self.normal_volumes[12:] + self.amd_volumes[12:] + self.dme_volumes[12:]
+            for i in self.normal_volumes[9:12]:
+                self.volumes[i] = 0
+            for i in self.amd_volumes[9:12]:
+                self.volumes[i] = 1
+            for i in self.dme_volumes[9:12]:
+                self.volumes[i] = 2
+        elif mode == 'test':
+            for i in self.normal_volumes[12:]:
+                self.volumes[i] = 0
+            for i in self.amd_volumes[12:]:
+                self.volumes[i] = 1
+            for i in self.dme_volumes[12:]:
+                self.volumes[i] = 2
+
+        for single_volume in self.volumes.items():
+            images = sorted(glob.glob(single_volume[0] + '/TIFFs/8bitTIFFs/*.tif'))
+            self.image_list = self.image_list + images
+            self.image_label = torch.cat([self.image_label, torch.ones(len(images)) * single_volume[1]])
+
+    def __getitem__(self, index):
+        output = self.transform(Image.open(self.image_list[index]))   # 分类用RGB 3通道
+        label = self.image_label[index]
+
+        return output, label
+
+    def __len__(self):
+        return len(self.image_list)
+
+
+class oct_cell_dataset(Dataset):
+    def __init__(self, root, transform=transform_default, mode='train'):
+        self.root = root
+        self.transform = transform
+        self.mode = mode
+        self.image_label = []
+        self.volumes = {}
+        self.image_label = torch.Tensor([])
+        self.image_list = []
+        self.normal = sorted(glob.glob(os.path.join(self.root, self.mode, 'NORMAL/*.jpeg')))[:20000]
+        self.dme = sorted(glob.glob(os.path.join(self.root, self.mode, 'DME/*.jpeg')))
+        if mode != 'train':
+            self.drusen = sorted(glob.glob(os.path.join(self.root, self.mode, 'DRUSEN/*.jpeg')))
+        else:
+            self.drusen = []
+
+        self.image_list = self.normal + self.dme + self.drusen
+        self.image_label = torch.cat([torch.zeros(len(self.normal)), torch.ones(len(self.dme)),
+                                      torch.ones(len(self.drusen)) * 2])
+
+    def __getitem__(self, index):
+        output = self.transform(Image.open(self.image_list[index]))   # 分类用RGB 3通道
+        label = self.image_label[index]
+
+        return output, label
+
+    def __len__(self):
+        return len(self.image_list)

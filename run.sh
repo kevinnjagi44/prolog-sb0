@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=3 python train_pix2pix.py
+CUDA_VISIBLE_DEVICES=4,5 python baseline.py --version v01_03_Baseline_boe  --dataset cboe  --lr 0.0001 --batch-size 36

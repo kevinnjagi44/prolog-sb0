@@ -26,6 +26,7 @@ class Baseline_Model(object):
 
         args = ParserArgs().args
 
+
         model = resnet101(num_classes=3, channels=1)
         model = nn.DataParallel(model).cuda()
         # optimizer = torch.optim.SGD(model.parameters(), lr=args.lr,
@@ -63,6 +64,23 @@ class Baseline_Model(object):
                                         transform=transform_)
         self.test_loader =get_dataloader(self.dataset_name, args.data_path, batch_size=args.batch_size, mode='test',
                                          transform=transform_)
+        # self.test_loader_wo = volumeLoader(volume_root=args.cheng_data, batch=args.batch_size).data_load()
+        # self.test_loader_with = volumeLoader(volume_root=args.cheng_data, batch=args.batch_size,
+        #                                 transfer=True).data_load()
+
+        # self.test_loader_con = volumeLoader(volume_root=args.cheng_data, batch=args.batch_size,
+        #                                      dataset='contentloss').data_load()
+        # self.test_loader_lst = volumeLoader(volume_root=args.cheng_data, batch=args.batch_size,
+        #                                     dataset='lstyle').data_load()
+        # self.test_loader_our = volumeLoader(volume_root=args.cheng_data, batch=args.batch_size,
+        #                                     dataset='ours').data_load()
+        # self.test_loader_bigan = volumeLoader(volume_root=args.cheng_data, batch=args.batch_size,
+        #                                     dataset='bigan').data_load()
+        # self.test_loader_cycle = volumeLoader(volume_root=args.cheng_data, batch=args.batch_size,
+        #                                     dataset='cyclegan').data_load()
+        # self.test_loader_demo = volumeLoader(volume_root=args.cheng_data, batch=args.batch_size,
+        #                                      dataset='demo').data_load()
+
         print_args(args)
         self.args = args
         self.model = model

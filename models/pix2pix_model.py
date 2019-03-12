@@ -14,6 +14,7 @@ def weights_init_normal(m):
 #           U-NET
 ##############################
 
+
 class UNetDown(nn.Module):
     def __init__(self, in_size, out_size, normalize=True, dropout=0.0):
         super(UNetDown, self).__init__()
@@ -27,6 +28,7 @@ class UNetDown(nn.Module):
 
     def forward(self, x):
         return self.model(x)
+
 
 class UNetUp(nn.Module):
     def __init__(self, in_size, out_size, dropout=0.0):
@@ -44,6 +46,7 @@ class UNetUp(nn.Module):
         x = torch.cat((x, skip_input), 1)
 
         return x
+
 
 class GeneratorUNet(nn.Module):
     def __init__(self, in_channels=1, out_channels=1):

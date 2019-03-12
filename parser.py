@@ -31,6 +31,12 @@ class ParserArgs(object):
         # general useful args
         parser.add_argument('--version', help='the version of different method/setting/parameters etc')
         # dataset
+        parser.add_argument('--dataset',
+                            default='boe',
+                            help='dataset name')
+        parser.add_argument('--data_path',
+                            default='/root/datasets/CellOCT2017',
+                            help='path to dataset')
         parser.add_argument('--sina_data',
                             default='/root/workspace/2018_OCT_transfer/dataset/sina/crop_mask/',
                             help='path to sina dataset')
@@ -40,6 +46,12 @@ class ParserArgs(object):
         parser.add_argument('--cheng_data',
                             default='/root/datasets/OCT_cheng',
                             help='path to cheng dataset')
+        parser.add_argument('--boe_data',
+                            default='/root/datasets/OCT_BOE',
+                            help='path to cell dataset')
+        parser.add_argument('--cell_data',
+                            default='/root/datasets/CellOCT2017',
+                            help='path to boe dataset')
         # retrain
         parser.add_argument('--resume', default='', type=str, metavar='PATH',
                             help='path to latest checkpoint (default: none)')
@@ -47,9 +59,9 @@ class ParserArgs(object):
                             help='resume and validate')
 
         # model hyper-parameters
-        parser.add_argument('--epochs', default=100, type=int, metavar='N',
+        parser.add_argument('--epochs', default=400, type=int, metavar='N',
                             help='number of total epochs to run')
-        parser.add_argument('--batch-size', default=12, type=int,
+        parser.add_argument('--batch-size', default=24, type=int,
                             metavar='N', help='mini-batch size')
         parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
                             metavar='LR', help='initial learning rate')
