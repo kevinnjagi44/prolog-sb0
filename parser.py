@@ -55,15 +55,17 @@ class ParserArgs(object):
         # retrain
         parser.add_argument('--resume', default='', type=str, metavar='PATH',
                             help='path to latest checkpoint (default: none)')
+        parser.add_argument('--mode', default='', type=str, metavar='PATH',
+                            help='checkpoint mode (default: none)')
         parser.add_argument('--validate', action='store_true',
                             help='resume and validate')
 
         # model hyper-parameters
-        parser.add_argument('--epochs', default=400, type=int, metavar='N',
+        parser.add_argument('--epochs', default=240, type=int, metavar='N',
                             help='number of total epochs to run')
-        parser.add_argument('--batch-size', default=24, type=int,
+        parser.add_argument('--batch-size', default=64, type=int,
                             metavar='N', help='mini-batch size')
-        parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
+        parser.add_argument('--lr', '--learning-rate', default=0.0001, type=float,
                             metavar='LR', help='initial learning rate')
         parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                             help='momentum')

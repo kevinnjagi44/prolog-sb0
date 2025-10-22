@@ -112,3 +112,4 @@ class Decoder(nn.Module):
         x = self.up4(x4)
         x = self.outc(x)
         return F.tanh(x)
+

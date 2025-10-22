@@ -326,19 +326,21 @@ class oct_cell_dataset(Dataset):
         self.volumes = {}
         self.image_label = torch.Tensor([])
         self.image_list = []
-        self.normal = sorted(glob.glob(os.path.join(self.root, self.mode, 'NORMAL/*.jpeg')))[:20000]
+        self.normal = sorted(glob.glob(os.path.join(self.root, self.mode, 'NORMAL/*.jpeg')))[:15000]
         self.dme = sorted(glob.glob(os.path.join(self.root, self.mode, 'DME/*.jpeg')))
-        if mode != 'train':
-            self.drusen = sorted(glob.glob(os.path.join(self.root, self.mode, 'DRUSEN/*.jpeg')))
+        if mode == 'test' or mode == 'val':
+            self.unknown = sorted(glob.glob(os.path.join(self.root, self.mode, 'DRUSEN/*.jpeg')))
+        elif mode == 'train_unknown':
+            self.unknown = sorted(glob.glob(os.path.join(self.root, self.mode, 'unknown/*.jpeg')))
         else:
-            self.drusen = []
+            self.unknown = []
 
-        self.image_list = self.normal + self.dme + self.drusen
+        self.image_list = self.normal + self.dme + self.unknown
         self.image_label = torch.cat([torch.zeros(len(self.normal)), torch.ones(len(self.dme)),
-                                      torch.ones(len(self.drusen)) * 2])
+                                      torch.ones(len(self.unknown)) * 2])
 
     def __getitem__(self, index):
-        output = self.transform(Image.open(self.image_list[index]))   # 分类用RGB 3通道
+        output = self.transform(Image.open(self.image_list[index]).convert('L'))
         label = self.image_label[index]
 
         return output, label

@@ -44,7 +44,6 @@ class Baseline_Model(object):
                 print("=> loading checkpoint '{}'".format(args.resume))
                 checkpoint = torch.load(ckpt_path)
                 args.start_epoch = checkpoint['epoch']
-                self.val_best_iou = checkpoint['best_iou']
                 model.load_state_dict(checkpoint['state_dict'])
                 optimizer.load_state_dict(checkpoint['optimizer'])
                 print("=> loaded checkpoint '{}' (epoch {})"
@@ -72,7 +71,7 @@ class Baseline_Model(object):
         self.cls_list = {}
 
     def train_val_test(self):
-        for epoch in range(self.args.epochs):
+        for epoch in range(self.args.start_epoch, self.args.epochs):
             adjust_lr(self.args.lr, self.optimizer, epoch, 50)
             self.epoch = epoch
             self.train(epoch)
@@ -133,7 +132,7 @@ class Baseline_Model(object):
         with torch.no_grad():
             for i, (input, target) in enumerate(self.val_loader):
                 target = target.cuda(async=True)
-
+                input = input.cuda(async=True)
                 # compute output
                 output = self.model(input)
                 output_all = torch.cat((output_all, output.data))
@@ -158,13 +157,14 @@ class Baseline_Model(object):
                              'state_dict': self.model.state_dict(),
                              'best_acc': self.val_best_acc,
                              'optimizer': self.optimizer.state_dict(),
-                             }, is_best=is_best,
+                             }, is_best=is_best & (epoch >= 10),
                       epoch=self.epoch+1)
             if is_best:
-                torch.save(self.model.state_dict(), 'checkpoints/{}/best_model.pkl'.format(self.args.version))
+                torch.save(self.model.state_dict(), 'checkpoints/{}/{}_best_model.pkl'
+                           .format(self.args.version, self.args.version))
             print('Save ckpt successfully!')
-            self.vis.text('best val acc:{}%'.format(self.val_best_acc), name='val result')
-            # self.vis.plot_many(dict(iou_val=iou.mean(), acc_val=acc_meter.average()))
+            self.vis.text('best val acc:{}%\n'.format(self.val_best_acc), name='val result')
+            self.vis.text('Args: \n{}\n'.format(self.args), name='args information')
             self.vis.plot('val_acc', acc_meter.avg)
             self.vis.plot_legend('val_acc_per_classes', acc_list, cls_list)
 
@@ -190,16 +190,14 @@ class Baseline_Model(object):
 
                 loss = self.criterion(output, target.long())
                 loss_meter.update(loss.data, input.size()[0])
-                print('Test Loss:{loss.val:.3f} ({loss.avg:.3f})\t'
+                print('Test Loss[{}]:{loss.val:.3f} ({loss.avg:.3f})\t'
                       'Acc:{top1.val:.3f}% ({top1.avg:.3f}%)\t'.format(
-                       loss=loss_meter, top1=acc_meter))
+                       i, loss=loss_meter, top1=acc_meter))
                 self.vis.plot('test_loss\n', loss.data)
             cls_list, acc_list = accuracy_per_class(output_all, target_all, self.dataset_name)
-            self.vis.text('test loss:{}\n  test acc:{}%\n  '
-                          '{} acc:{}\n  {} acc:{}\n  {} acc:{}\n'.
-                          format(loss_meter.avg, self.val_best_acc, cls_list[0], acc_list[0], cls_list[1], acc_list[1],
+            self.vis.text('test loss:{}\n  test acc:{}%\n  {} acc:{}%\n  {} acc:{}%\n  {} acc:{}%\n'.
+                          format(loss_meter.avg, acc_meter.avg, cls_list[0], acc_list[0], cls_list[1], acc_list[1],
                                  cls_list[2], acc_list[2]), name='val result')
-            self.vis.text(self.args, 'args information')
 
 
 def main():

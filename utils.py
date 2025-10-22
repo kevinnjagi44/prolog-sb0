@@ -113,9 +113,9 @@ def accuracy_per_class(output, target, cls_list_name):
     acc_list = []
     cls_list = []
     if cls_list_name == 'boe':
-        cls_dict = {'normal': 0, 'amd': 1, 'dme': 2}
+        cls_dict = {'normal': 0, 'amd': 1, 'unknown': 2}
     else:
-        cls_dict = {'normal': 0, 'dme': 1, 'drusen': 2}
+        cls_dict = {'normal': 0, 'dme': 1, 'unknown': 2}
     _, pred = output.topk(1, 1, True, True)
     pred = pred.t()
     for name in cls_dict.items():
@@ -128,14 +128,14 @@ def accuracy_per_class(output, target, cls_list_name):
     return cls_list, acc_list
 
 
-def save_ckpt(version, state, is_best, epoch):
+def save_ckpt(version, state, epoch, is_best=False, project='baseline'):
     v_split_list = version.split('_')
     v_major = v_split_list[0]
     v_minor = v_split_list[1]
 
     ckpt_dir = os.path.join('checkpoints/', version)
     os.makedirs(ckpt_dir, exist_ok=True)
-    version_filename = '{}_ckpt.pth.tar'.format(version)
+    version_filename = '{}_{}ckpt.pth.tar'.format(version, project)
     version_file_path = os.path.join(ckpt_dir, version_filename)
     torch.save(state, version_file_path)
     # if epoch % 10 == 0:

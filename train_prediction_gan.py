@@ -122,7 +122,7 @@ threshold = opt.threshold
 counter = Counter()
 # #############   Train   ############## #
 for epoch in range(opt.epoch, opt.n_epochs):
-    Generator.train()
+    Generator.train_GAN()
     Discriminator.train()
     for i, (batch, real_future) in enumerate(train_dataloader):
         input = batch[0].unsqueeze(0).cuda()

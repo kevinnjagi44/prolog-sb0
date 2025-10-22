@@ -48,6 +48,23 @@ class UNetUp(nn.Module):
         return x
 
 
+class Up(nn.Module):
+    def __init__(self, in_size, out_size, dropout=0.0, padding=1):
+        super(Up, self).__init__()
+        layers = [  nn.ConvTranspose2d(in_size, out_size, 4, 2, padding, bias=False),
+                    nn.InstanceNorm2d(out_size),
+                    nn.ReLU(inplace=True)]
+        if dropout:
+            layers.append(nn.Dropout(dropout))
+
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        x = self.model(x)
+
+        return x
+
+
 class GeneratorUNet(nn.Module):
     def __init__(self, in_channels=1, out_channels=1):
         super(GeneratorUNet, self).__init__()
@@ -87,6 +104,7 @@ class GeneratorUNet(nn.Module):
         d6 = self.down6(d5)
         d7 = self.down7(d6)
         d8 = self.down8(d7)
+
         u1 = self.up1(d8, d7)
         u2 = self.up2(u1, d6)
         u3 = self.up3(u2, d5)
@@ -94,8 +112,9 @@ class GeneratorUNet(nn.Module):
         u5 = self.up5(u4, d3)
         u6 = self.up6(u5, d2)
         u7 = self.up7(u6, d1)
+        latent = d8
 
-        return self.final(u7)
+        return self.final(u7), latent
 
 
 ##############################
@@ -128,3 +147,93 @@ class Discriminator(nn.Module):
         img_input = torch.cat((img_A, img_B), 1)
 
         return self.model(img_input)
+
+
+class Discriminator_openset(nn.Module):
+    def __init__(self, in_channels=1):
+        super(Discriminator_openset, self).__init__()
+
+        def discriminator_block(in_filters, out_filters, normalization=True):
+            """Returns downsampling layers of each discriminator block"""
+            layers = [nn.Conv2d(in_filters, out_filters, 4, stride=2, padding=1)]
+            if normalization:
+                layers.append(nn.InstanceNorm2d(out_filters))
+            layers.append(nn.LeakyReLU(0.2, inplace=True))
+            return layers
+
+        self.model = nn.Sequential(
+            *discriminator_block(in_channels, 64, normalization=False),
+            *discriminator_block(64, 128),
+            *discriminator_block(128, 256),
+            *discriminator_block(256, 512),
+            nn.ZeroPad2d((1, 0, 1, 0)),
+            nn.Conv2d(512, 1, 4, padding=1, bias=False)
+        )
+
+    def forward(self, img_A):
+        # Concatenate image and condition image by channels to produce input
+        img_input = img_A
+
+        return self.model(img_input)
+
+##############################
+#        Encoder-Generator
+##############################
+
+
+class Encoder(nn.Module):
+    def __init__(self, in_channels=1, out_channels=1):
+        super(Encoder, self).__init__()
+
+        self.down1 = UNetDown(in_channels, 64, normalize=False)
+        self.down2 = UNetDown(64, 128)
+        self.down3 = UNetDown(128, 256)
+        self.down4 = UNetDown(256, 512, dropout=0.5)
+        self.down5 = UNetDown(512, 512, dropout=0.5)
+        self.down6 = UNetDown(512, 512, dropout=0.5)
+        self.down7 = UNetDown(512, 512, normalize=False, dropout=0.5)
+
+    def forward(self, x):
+        # U-Net generator with skip connections from encoder to decoder
+        d1 = self.down1(x)
+        d2 = self.down2(d1)
+        d3 = self.down3(d2)
+        d4 = self.down4(d3)
+        d5 = self.down5(d4)
+        d6 = self.down6(d5)
+        d7 = self.down7(d6)
+
+        return d7
+
+
+class Generator(nn.Module):
+    def __init__(self, out_channels=1):
+        super(Generator, self).__init__()
+
+        self.up1 = Up(512, 512, dropout=0.5)
+        self.up2 = Up(512, 512, dropout=0.5)
+        self.up3 = Up(512, 512, dropout=0.5)
+        self.up4 = Up(512, 256, padding=2)
+        self.up5 = Up(256, 256)
+        self.up6 = Up(256, 128)
+        self.up7 = Up(128, 64)
+
+        self.final = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.ZeroPad2d((1, 0, 1, 0)),
+            nn.Conv2d(64, out_channels, 4, padding=1),
+            nn.Tanh()
+        )
+
+    def forward(self, x):
+        # U-Net generator with skip connections from encoder to decoder
+
+        u1 = self.up1(x)
+        u2 = self.up2(u1)
+        u3 = self.up3(u2)
+        u4 = self.up4(u3)
+        u5 = self.up5(u4)
+        u6 = self.up6(u5)
+        u7 = self.up7(u6)
+
+        return self.final(u7)

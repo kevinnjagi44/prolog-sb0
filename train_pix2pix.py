@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets
 from torch.autograd import Variable
 
+from models.Discriminator_resnet import *
 from models.pix2pix_model import *
 from datasets import *
 

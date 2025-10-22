@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=4,5,7 python train_open_set.py --version v01_01_trainGAN_cell  --dataset cell --mode generate_unknown
